@@ -10,12 +10,12 @@ class File {
     const content = await File.getFileContent(filePath);
     const validation = File.isValid(content);
     if (!validation.valid) throw new Error(validation.error);
-    return content;
+    const users = File.parseCsvToJson(content);
+    return users;
   }
 
   static async getFileContent(filePath) {
-    const file = await join(__dirname, filePath);
-    return (await readFile(file)).toString("utf-8");
+    return (await readFile(filePath)).toString("utf-8");
   }
 
   static isValid(csvString, options = DEFAULT_OPTIONS) {
@@ -27,12 +27,35 @@ class File {
         valid: false,
       };
     }
+
+    const isContentLengthIsValid =
+      fileWithoutHeader.length > 0 &&
+      fileWithoutHeader.length <= options.maxLines;
+
+    if (!isContentLengthIsValid) {
+      return {
+        error: error.FILE_LENGTH_ERROR_MESSAGE,
+        valid: false,
+      };
+    }
+
+    return { valid: true };
+  }
+
+  static parseCsvToJson(csvString) {
+    const lines = csvString.split("\n");
+    //Delete the first element of the array in this case the header
+    const firstLine = lines.shift();
+    const header = firstLine.split(",");
+    const users = lines.map((line) => {
+      const columns = line.split(",");
+      let user = {};
+      for (const index in columns) {
+        user[header[index]] = columns[index];
+      }
+      console.log(user);
+    });
   }
 }
-(async () => {
-  // const result = await File.csvToJson("../mocks/emptyFile-invalid.csv");
-  // const result = File.csvToJson("../mocks/fourItems-invalid.csv");
-  const result = File.csvToJson("../mocks/invalid-header.csv");
-  // const result = File.csvToJson("../mocks/threeItems-valid.csv");
-  console.log(result);
-})();
+
+module.exports = File;
